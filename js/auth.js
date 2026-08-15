@@ -22,6 +22,24 @@ export function initAuth() {
   const showSignupBtn = document.getElementById('showSignup');
   const showLoginBtn = document.getElementById('showLogin');
 
+  // Toggle Password Visibility
+  document.querySelectorAll('.toggle-password').forEach((icon) => {
+    icon.addEventListener('click', () => {
+      const targetId = icon.getAttribute('data-target');
+      const targetInput = document.getElementById(targetId);
+
+      if (targetInput.type === 'password') {
+        targetInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        targetInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+  });
+
   if (showSignupBtn) {
     showSignupBtn.addEventListener('click', (e) => {
       e.preventDefault();
