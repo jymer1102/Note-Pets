@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Pet Playground</title>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- AUTH MODAL -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <h2><i class="fa-solid fa-paw"></i> Pet Playground</h2>
+      <input type="text" id="authUsername" placeholder="Username">
+      <input type="password" id="authPassword" placeholder="Password">
+      <div class="auth-btn-group">
+        <button class="auth-btn btn-login" id="loginBtn">Log In</button>
+        <button class="auth-btn btn-signup" id="signupBtn">Sign Up</button>
+      </div>
+      <div class="auth-error" id="authError"></div>
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <!-- TOP CONTROLS -->
+  <div class="top-right-controls">
+    <button class="top-btn" id="addPetBtn"><i class="fa-solid fa-plus"></i> Add Pet</button>
+    <button class="top-btn" id="themeToggleBtn"><i class="fa-solid fa-palette"></i> Color Scheme</button>
+    <button class="top-btn" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+  </div>
+
+  <!-- PET DETAILS CARD -->
+  <div class="pet-card" id="petCard">
+    <h3>
+      <span><i class="fa-solid fa-paw"></i> Pet Details</span>
+      <button class="close-btn" id="closeCardBtn"><i class="fa-solid fa-xmark"></i></button>
+    </h3>
+    
+    <div class="control-group">
+      <label for="petColor">Pet Color:</label>
+      <input type="color" id="petColor" value="#ff6b81">
+    </div>
+
+    <input type="text" id="noteTitle" placeholder="Pet Name / Title...">
+    <textarea id="noteInput" placeholder="Add a note for this pet..."></textarea>
+    
+    <div class="btn-group">
+      <button class="btn-save" id="saveNoteBtn"><i class="fa-solid fa-floppy-disk"></i> Save Pet</button>
+      <button class="btn-delete" id="deleteNoteBtn"><i class="fa-solid fa-trash-can"></i> Delete Pet</button>
+    </div>
+  </div>
+
+  <!-- Main JavaScript ES Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
