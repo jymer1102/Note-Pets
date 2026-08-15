@@ -1,11 +1,18 @@
-import { supabase, setCurrentUser } from './supabase.js';
+import { supabase, setCurrentUser, checkSession } from './supabase.js';
 import { Pet, pets, clearPetsArray } from './pet.js';
 
 let isUsernameValid = false;
 
 const formatEmail = (username) => `${username.trim().toLowerCase()}@petapp.local`;
 
-export function initAuth() {
+function onLoginSuccess(user) {
+  setCurrentUser(user);
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('topControls').style.display = 'flex';
+  loadUserPets();
+}
+
+export async function initAuth() {
   const authOverlay = document.getElementById('authOverlay');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
@@ -22,7 +29,13 @@ export function initAuth() {
   const showSignupBtn = document.getElementById('showSignup');
   const showLoginBtn = document.getElementById('showLogin');
 
-  // Toggle Password Visibility
+  // Check if session exists in localStorage
+  const existingUser = await checkSession();
+  if (existingUser) {
+    onLoginSuccess(existingUser);
+  }
+
+  // Password visibility toggle
   document.querySelectorAll('.toggle-password').forEach((icon) => {
     icon.addEventListener('click', () => {
       const targetId = icon.getAttribute('data-target');
@@ -65,9 +78,7 @@ export function initAuth() {
       usernameCheck.innerHTML = '';
       isUsernameValid = false;
 
-      if (username.length < 2) {
-        return;
-      }
+      if (username.length < 2) return;
 
       const { data, error } = await supabase
         .from('profiles')
@@ -96,18 +107,10 @@ export function initAuth() {
       const password = signupPassword.value;
       const confirmPassword = signupConfirmPassword.value;
 
-      if (username.length < 2) {
-        return (authError.textContent = 'Username must be at least 2 characters.');
-      }
-      if (!isUsernameValid) {
-        return (authError.textContent = 'Please choose an available username.');
-      }
-      if (password.length < 6) {
-        return (authError.textContent = 'Password must be at least 6 characters.');
-      }
-      if (password !== confirmPassword) {
-        return (authError.textContent = 'Passwords do not match.');
-      }
+      if (username.length < 2) return (authError.textContent = 'Username must be at least 2 characters.');
+      if (!isUsernameValid) return (authError.textContent = 'Please choose an available username.');
+      if (password.length < 6) return (authError.textContent = 'Password must be at least 6 characters.');
+      if (password !== confirmPassword) return (authError.textContent = 'Passwords do not match.');
 
       const email = formatEmail(username);
 
@@ -119,13 +122,9 @@ export function initAuth() {
           .from('profiles')
           .insert([{ id: data.user.id, username: username.toLowerCase() }]);
 
-        if (profileError) {
-          return (authError.textContent = 'Error setting up profile.');
-        }
+        if (profileError) return (authError.textContent = 'Error setting up profile.');
 
-        setCurrentUser(data.user);
-        authOverlay.style.display = 'none';
-        loadUserPets();
+        onLoginSuccess(data.user);
       }
     });
   }
@@ -140,9 +139,7 @@ export function initAuth() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return (authError.textContent = 'Invalid username or password.');
 
-      setCurrentUser(data.user);
-      authOverlay.style.display = 'none';
-      loadUserPets();
+      onLoginSuccess(data.user);
     });
   }
 
@@ -166,6 +163,8 @@ export async function loadUserPets() {
 
 export async function savePetToDB(pet) {
   const { currentUser } = await import('./supabase.js');
+  if (!currentUser) return;
+
   const petPayload = {
     user_id: currentUser.id,
     title: pet.title,
