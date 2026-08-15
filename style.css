@@ -63,15 +63,31 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: white;
-  padding: 10px 35px 10px 12px;
+  padding: 10px 38px 10px 12px;
   outline: none;
   font-size: 0.9rem;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.toggle-password:hover {
+  color: #fff;
 }
 
 .check-icon {
   position: absolute;
   right: 12px;
-  top: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 1rem;
 }
 
