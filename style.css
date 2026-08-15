@@ -55,6 +55,8 @@ body {
   position: relative;
   width: 100%;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .auth-card input {
@@ -63,7 +65,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: white;
-  padding: 10px 38px 10px 12px;
+  padding: 10px 40px 10px 12px;
   outline: none;
   font-size: 0.9rem;
 }
@@ -77,6 +79,7 @@ body {
   cursor: pointer;
   font-size: 0.9rem;
   transition: color 0.2s;
+  z-index: 2;
 }
 
 .toggle-password:hover {
@@ -89,6 +92,7 @@ body {
   top: 50%;
   transform: translateY(-50%);
   font-size: 1rem;
+  z-index: 2;
 }
 
 .check-icon.valid {
