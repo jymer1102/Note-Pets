@@ -7,8 +7,13 @@ const formatEmail = (username) => `${username.trim().toLowerCase()}@petapp.local
 
 function onLoginSuccess(user) {
   setCurrentUser(user);
-  document.getElementById('authOverlay').style.display = 'none';
-  document.getElementById('topControls').style.display = 'flex';
+  
+  const authOverlay = document.getElementById('authOverlay');
+  const topControls = document.getElementById('topControls');
+
+  if (authOverlay) authOverlay.style.display = 'none';
+  if (topControls) topControls.style.display = 'flex';
+  
   loadUserPets();
 }
 
@@ -29,13 +34,13 @@ export async function initAuth() {
   const showSignupBtn = document.getElementById('showSignup');
   const showLoginBtn = document.getElementById('showLogin');
 
-  // Check if session exists in localStorage
+  // Check saved session
   const existingUser = await checkSession();
   if (existingUser) {
     onLoginSuccess(existingUser);
   }
 
-  // Password visibility toggle
+  // Eye icon password toggle
   document.querySelectorAll('.toggle-password').forEach((icon) => {
     icon.addEventListener('click', () => {
       const targetId = icon.getAttribute('data-target');
