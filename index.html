@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Pet Playground</title>
+  <title>Note Pets</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
@@ -30,9 +30,10 @@
         </div>
         <button class="auth-btn btn-login" id="loginBtn">Log In</button>
         
-        <p class="auth-toggle-text">
-          Don't have an account? <a href="#" id="showSignup">Register here</a>
-        </p>
+        <div class="auth-toggle-container">
+          <span>Don't have an account?</span>
+          <button class="btn-toggle" id="showSignup">Register Here</button>
+        </div>
       </div>
 
       <!-- REGISTER FORM -->
@@ -49,9 +50,10 @@
         </div>
         <button class="auth-btn btn-signup" id="signupBtn">Sign Up</button>
         
-        <p class="auth-toggle-text">
-          Already have an account? <a href="#" id="showLogin">Log in here</a>
-        </p>
+        <div class="auth-toggle-container">
+          <span>Already have an account?</span>
+          <button class="btn-toggle" id="showLogin">Log In Here</button>
+        </div>
       </div>
 
       <div class="auth-error" id="authError"></div>
