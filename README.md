@@ -1,6 +1,6 @@
 <div align=Center div/>
 
-# Note-Pets
+# Note Pets
 
 ![README Banner](favicon.png)
 
