@@ -1,7 +1,7 @@
 import { initAuth } from './auth.js';
 import { Pet, pets } from './pet.js';
 
-// --- THREE.JS SETUP ---
+// THREE.JS SETUP
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
 
@@ -22,7 +22,7 @@ export const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// --- LIGHTING & GROUND ---
+// LIGHTING & GROUND
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 
@@ -41,12 +41,11 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// --- RAYCASTING & INTERACTION ---
+// RAYCASTING & INTERACTION
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let selectedPet = null;
 
-// UI Elements
 const petCard = document.getElementById('petCard');
 const petColorInput = document.getElementById('petColor');
 const noteTitleInput = document.getElementById('noteTitle');
@@ -56,7 +55,7 @@ const deleteNoteBtn = document.getElementById('deleteNoteBtn');
 const closeCardBtn = document.getElementById('closeCardBtn');
 const addPetBtn = document.getElementById('addPetBtn');
 
-// Add New Pet Button Listener
+// Add Pet Button Listener
 if (addPetBtn) {
   addPetBtn.addEventListener('click', () => {
     const newPet = new Pet();
@@ -66,7 +65,6 @@ if (addPetBtn) {
 
 // Canvas Click Handler
 window.addEventListener('click', (e) => {
-  // Prevent raycasting if clicking on UI elements
   if (e.target.closest('#authOverlay') || e.target.closest('.pet-card') || e.target.closest('.top-right-controls')) {
     return;
   }
@@ -104,7 +102,6 @@ function deselectPet() {
   petCard.classList.remove('active');
 }
 
-// Card Control Event Listeners
 if (closeCardBtn) closeCardBtn.addEventListener('click', deselectPet);
 
 if (petColorInput) {
@@ -133,14 +130,12 @@ if (deleteNoteBtn) {
   });
 }
 
-// Window Resize Handler
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Animation Loop
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -150,6 +145,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// Initialize Application
+// Start application
 initAuth();
 animate();
