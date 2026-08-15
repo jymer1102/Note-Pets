@@ -1,7 +1,6 @@
 import { initAuth } from './auth.js';
 import { Pet, pets } from './pet.js';
 
-// THREE.JS SETUP
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
 
@@ -11,7 +10,7 @@ export const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(0, 5, 10);
+camera.position.set(0, 6, 10);
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -22,8 +21,8 @@ export const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// LIGHTING & GROUND
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+// LIGHTS & GROUND
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -41,10 +40,14 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// RAYCASTING & INTERACTION
+// RAYCASTING & DRAGGING
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const planeIntersection = new THREE.Vector3();
+
 let selectedPet = null;
+let draggedPet = null;
 
 const petCard = document.getElementById('petCard');
 const petColorInput = document.getElementById('petColor');
@@ -55,7 +58,6 @@ const deleteNoteBtn = document.getElementById('deleteNoteBtn');
 const closeCardBtn = document.getElementById('closeCardBtn');
 const addPetBtn = document.getElementById('addPetBtn');
 
-// Add Pet Button Listener
 if (addPetBtn) {
   addPetBtn.addEventListener('click', () => {
     const newPet = new Pet();
@@ -63,8 +65,8 @@ if (addPetBtn) {
   });
 }
 
-// Canvas Click Handler
-window.addEventListener('click', (e) => {
+// Mouse Controls for Dragging & Selecting
+window.addEventListener('pointerdown', (e) => {
   if (e.target.closest('#authOverlay') || e.target.closest('.pet-card') || e.target.closest('.top-right-controls')) {
     return;
   }
@@ -73,18 +75,45 @@ window.addEventListener('click', (e) => {
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
-
   const meshes = pets.map((p) => p.mesh);
   const intersects = raycaster.intersectObjects(meshes);
 
   if (intersects.length > 0) {
     const hitMesh = intersects[0].object;
-    const petInstance = pets.find((p) => p.mesh === hitMesh);
+    const petInstance = hitMesh.userData.petInstance;
+
     if (petInstance) {
+      draggedPet = petInstance;
+      draggedPet.isDragging = true;
+      controls.enabled = false; // Disable camera orbit while dragging pet
       selectPet(petInstance);
     }
   } else {
     deselectPet();
+  }
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!draggedPet) return;
+
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  if (raycaster.ray.intersectPlane(dragPlane, planeIntersection)) {
+    draggedPet.group.position.x = planeIntersection.x;
+    draggedPet.group.position.z = planeIntersection.z;
+    draggedPet.targetX = planeIntersection.x;
+    draggedPet.targetZ = planeIntersection.z;
+  }
+});
+
+window.addEventListener('pointerup', () => {
+  if (draggedPet) {
+    draggedPet.isDragging = false;
+    draggedPet = null;
+    controls.enabled = true; // Re-enable camera orbit
   }
 });
 
@@ -113,7 +142,7 @@ if (petColorInput) {
 if (saveNoteBtn) {
   saveNoteBtn.addEventListener('click', async () => {
     if (selectedPet) {
-      selectedPet.title = noteTitleInput.value;
+      selectedPet.updateLabel(noteTitleInput.value);
       selectedPet.note = noteInput.value;
       await selectedPet.save();
       deselectPet();
@@ -145,6 +174,5 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// Start application
 initAuth();
 animate();
