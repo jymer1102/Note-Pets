@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Note Pets</title>
+  <title>3D Pet Playground</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
@@ -27,6 +27,7 @@
         </div>
         <div class="input-container">
           <input type="password" id="loginPassword" placeholder="Password">
+          <i class="fa-solid fa-eye toggle-password" data-target="loginPassword"></i>
         </div>
         <button class="auth-btn btn-login" id="loginBtn">Log In</button>
         
@@ -44,9 +45,11 @@
         </div>
         <div class="input-container">
           <input type="password" id="signupPassword" placeholder="Password (min 6 chars)">
+          <i class="fa-solid fa-eye toggle-password" data-target="signupPassword"></i>
         </div>
         <div class="input-container">
           <input type="password" id="signupConfirmPassword" placeholder="Confirm Password">
+          <i class="fa-solid fa-eye toggle-password" data-target="signupConfirmPassword"></i>
         </div>
         <button class="auth-btn btn-signup" id="signupBtn">Sign Up</button>
         
