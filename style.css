@@ -97,20 +97,39 @@ body {
 .btn-login { background: #4f46e5; color: white; }
 .btn-signup { background: #4f46e5; color: white; }
 
-.auth-toggle-text {
-  margin-top: 15px;
+/* TOGGLE CONTAINER & BUTTON */
+.auth-toggle-container {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-toggle-container span {
   font-size: 0.85rem;
-  color: #ccc;
+  color: #aaa;
 }
 
-.auth-toggle-text a {
-  color: #818cf8;
-  text-decoration: none;
+.btn-toggle {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.auth-toggle-text a:hover {
-  text-decoration: underline;
+.btn-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #818cf8;
+  color: #818cf8;
 }
 
 .auth-error {
