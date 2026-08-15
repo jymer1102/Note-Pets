@@ -1,122 +1,140 @@
 import { supabase, setCurrentUser } from './supabase.js';
 import { Pet, pets, clearPetsArray } from './pet.js';
 
-const authOverlay = document.getElementById('authOverlay');
-const loginForm = document.getElementById('loginForm');
-const signupForm = document.getElementById('signupForm');
-const authError = document.getElementById('authError');
-
-const loginUsername = document.getElementById('loginUsername');
-const loginPassword = document.getElementById('loginPassword');
-
-const signupUsername = document.getElementById('signupUsername');
-const signupPassword = document.getElementById('signupPassword');
-const signupConfirmPassword = document.getElementById('signupConfirmPassword');
-const usernameCheck = document.getElementById('usernameCheck');
-
 let isUsernameValid = false;
 
 const formatEmail = (username) => `${username.trim().toLowerCase()}@petapp.local`;
 
 export function initAuth() {
-  document.getElementById('showSignup').addEventListener('click', (e) => {
-    e.preventDefault();
-    loginForm.style.display = 'none';
-    signupForm.style.display = 'block';
-    authError.textContent = '';
-  });
+  const authOverlay = document.getElementById('authOverlay');
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+  const authError = document.getElementById('authError');
 
-  document.getElementById('showLogin').addEventListener('click', (e) => {
-    e.preventDefault();
-    signupForm.style.display = 'none';
-    loginForm.style.display = 'block';
-    authError.textContent = '';
-  });
+  const loginUsername = document.getElementById('loginUsername');
+  const loginPassword = document.getElementById('loginPassword');
 
-  signupUsername.addEventListener('input', async () => {
-    const username = signupUsername.value.trim();
-    usernameCheck.className = 'check-icon';
-    usernameCheck.innerHTML = '';
-    isUsernameValid = false;
+  const signupUsername = document.getElementById('signupUsername');
+  const signupPassword = document.getElementById('signupPassword');
+  const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+  const usernameCheck = document.getElementById('usernameCheck');
 
-    if (username.length < 2) {
-      return;
-    }
+  const showSignupBtn = document.getElementById('showSignup');
+  const showLoginBtn = document.getElementById('showLogin');
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('username', username.toLowerCase());
+  if (showSignupBtn) {
+    showSignupBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      loginForm.style.display = 'none';
+      signupForm.style.display = 'block';
+      authError.textContent = '';
+    });
+  }
 
-    if (error) return;
+  if (showLoginBtn) {
+    showLoginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      signupForm.style.display = 'none';
+      loginForm.style.display = 'block';
+      authError.textContent = '';
+    });
+  }
 
-    if (data.length === 0) {
-      usernameCheck.classList.add('valid');
-      usernameCheck.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-      isUsernameValid = true;
-    } else {
-      usernameCheck.classList.add('invalid');
-      usernameCheck.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
-    }
-  });
+  if (signupUsername) {
+    signupUsername.addEventListener('input', async () => {
+      const username = signupUsername.value.trim();
+      usernameCheck.className = 'check-icon';
+      usernameCheck.innerHTML = '';
+      isUsernameValid = false;
 
-  document.getElementById('signupBtn').addEventListener('click', async () => {
-    authError.textContent = '';
-
-    const username = signupUsername.value.trim();
-    const password = signupPassword.value;
-    const confirmPassword = signupConfirmPassword.value;
-
-    if (username.length < 2) {
-      return (authError.textContent = 'Username must be at least 2 characters.');
-    }
-    if (!isUsernameValid) {
-      return (authError.textContent = 'Please choose an available username.');
-    }
-    if (password.length < 6) {
-      return (authError.textContent = 'Password must be at least 6 characters.');
-    }
-    if (password !== confirmPassword) {
-      return (authError.textContent = 'Passwords do not match.');
-    }
-
-    const email = formatEmail(username);
-
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return (authError.textContent = error.message);
-
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{ id: data.user.id, username: username.toLowerCase() }]);
-
-      if (profileError) {
-        return (authError.textContent = 'Error setting up profile.');
+      if (username.length < 2) {
+        return;
       }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username.toLowerCase());
+
+      if (error) return;
+
+      if (data.length === 0) {
+        usernameCheck.classList.add('valid');
+        usernameCheck.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+        isUsernameValid = true;
+      } else {
+        usernameCheck.classList.add('invalid');
+        usernameCheck.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+      }
+    });
+  }
+
+  const signupBtn = document.getElementById('signupBtn');
+  if (signupBtn) {
+    signupBtn.addEventListener('click', async () => {
+      authError.textContent = '';
+
+      const username = signupUsername.value.trim();
+      const password = signupPassword.value;
+      const confirmPassword = signupConfirmPassword.value;
+
+      if (username.length < 2) {
+        return (authError.textContent = 'Username must be at least 2 characters.');
+      }
+      if (!isUsernameValid) {
+        return (authError.textContent = 'Please choose an available username.');
+      }
+      if (password.length < 6) {
+        return (authError.textContent = 'Password must be at least 6 characters.');
+      }
+      if (password !== confirmPassword) {
+        return (authError.textContent = 'Passwords do not match.');
+      }
+
+      const email = formatEmail(username);
+
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) return (authError.textContent = error.message);
+
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{ id: data.user.id, username: username.toLowerCase() }]);
+
+        if (profileError) {
+          return (authError.textContent = 'Error setting up profile.');
+        }
+
+        setCurrentUser(data.user);
+        authOverlay.style.display = 'none';
+        loadUserPets();
+      }
+    });
+  }
+
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      authError.textContent = '';
+      const email = formatEmail(loginUsername.value);
+      const password = loginPassword.value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return (authError.textContent = 'Invalid username or password.');
 
       setCurrentUser(data.user);
       authOverlay.style.display = 'none';
       loadUserPets();
-    }
-  });
+    });
+  }
 
-  document.getElementById('loginBtn').addEventListener('click', async () => {
-    authError.textContent = '';
-    const email = formatEmail(loginUsername.value);
-    const password = loginPassword.value;
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return (authError.textContent = 'Invalid username or password.');
-
-    setCurrentUser(data.user);
-    authOverlay.style.display = 'none';
-    loadUserPets();
-  });
-
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    location.reload();
-  });
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      location.reload();
+    });
+  }
 }
 
 export async function loadUserPets() {
