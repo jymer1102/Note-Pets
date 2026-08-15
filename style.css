@@ -5,11 +5,13 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   user-select: none;
 }
+
 body {
   overflow: hidden;
   background-color: #1a1a2e;
   color: #fff;
 }
+
 #canvas-container {
   width: 100vw;
   height: 100vh;
@@ -33,48 +35,89 @@ body {
   justify-content: center;
   align-items: center;
 }
+
 .auth-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 30px;
-  width: 320px;
+  width: 340px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   text-align: center;
 }
+
 .auth-card h2 {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   font-size: 1.4rem;
 }
+
+.input-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .auth-card input {
   width: 100%;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: white;
-  padding: 10px;
-  margin-bottom: 12px;
+  padding: 10px 35px 10px 12px;
   outline: none;
+  font-size: 0.9rem;
 }
-.auth-btn-group {
-  display: flex;
-  gap: 10px;
+
+.check-icon {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-size: 1rem;
 }
+
+.check-icon.valid {
+  color: #22c55e;
+}
+
+.check-icon.invalid {
+  color: #ef4444;
+}
+
 .auth-btn {
-  flex: 1;
+  width: 100%;
   padding: 10px;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
+  margin-top: 5px;
 }
+
 .btn-login { background: #4f46e5; color: white; }
-.btn-signup { background: rgba(255,255,255,0.15); color: white; }
+.btn-signup { background: #4f46e5; color: white; }
+
+.auth-toggle-text {
+  margin-top: 15px;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.auth-toggle-text a {
+  color: #818cf8;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-toggle-text a:hover {
+  text-decoration: underline;
+}
+
 .auth-error {
   color: #f43f5e;
   font-size: 0.8rem;
-  margin-top: 10px;
+  margin-top: 12px;
+  min-height: 1.2em;
 }
 
 /* --- TOP CONTROLS --- */
@@ -103,39 +146,10 @@ body {
   align-items: center;
   gap: 8px;
 }
+
 .top-btn:hover {
   background: rgba(40, 40, 65, 0.9);
   transform: translateY(-2px);
-}
-
-.theme-popup {
-  position: absolute;
-  top: 70px;
-  right: 20px;
-  z-index: 10;
-  background: rgba(20, 20, 35, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-.theme-popup.active { display: flex; }
-.theme-option {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid transparent;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: left;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 /* --- PET CARD --- */
@@ -153,7 +167,9 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   display: none;
 }
+
 .pet-card.active { display: block; }
+
 .pet-card h3 {
   font-size: 1rem;
   margin-bottom: 12px;
@@ -161,6 +177,7 @@ body {
   justify-content: space-between;
   align-items: center;
 }
+
 .close-btn {
   background: none;
   border: none;
@@ -175,6 +192,7 @@ body {
   align-items: center;
   margin-bottom: 12px;
 }
+
 input[type="color"] {
   border: none;
   width: 32px;
@@ -195,9 +213,11 @@ input[type="text"], textarea {
   outline: none;
   font-size: 0.85rem;
 }
+
 textarea { height: 80px; resize: none; }
 
 .btn-group { display: flex; gap: 8px; }
+
 .btn-group button {
   flex: 1;
   padding: 8px;
@@ -210,5 +230,6 @@ textarea { height: 80px; resize: none; }
   justify-content: center;
   gap: 6px;
 }
+
 .btn-save { background: #4f46e5; color: white; }
 .btn-delete { background: #e11d48; color: white; }
