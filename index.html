@@ -19,12 +19,41 @@
   <div class="auth-overlay" id="authOverlay">
     <div class="auth-card">
       <h2><i class="fa-solid fa-paw"></i> Pet Playground</h2>
-      <input type="text" id="authUsername" placeholder="Username">
-      <input type="password" id="authPassword" placeholder="Password">
-      <div class="auth-btn-group">
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm">
+        <div class="input-container">
+          <input type="text" id="loginUsername" placeholder="Username">
+        </div>
+        <div class="input-container">
+          <input type="password" id="loginPassword" placeholder="Password">
+        </div>
         <button class="auth-btn btn-login" id="loginBtn">Log In</button>
-        <button class="auth-btn btn-signup" id="signupBtn">Sign Up</button>
+        
+        <p class="auth-toggle-text">
+          Don't have an account? <a href="#" id="showSignup">Register here</a>
+        </p>
       </div>
+
+      <!-- REGISTER FORM -->
+      <div id="signupForm" style="display: none;">
+        <div class="input-container">
+          <input type="text" id="signupUsername" placeholder="Username (min 2 chars)">
+          <span id="usernameCheck" class="check-icon"></span>
+        </div>
+        <div class="input-container">
+          <input type="password" id="signupPassword" placeholder="Password (min 6 chars)">
+        </div>
+        <div class="input-container">
+          <input type="password" id="signupConfirmPassword" placeholder="Confirm Password">
+        </div>
+        <button class="auth-btn btn-signup" id="signupBtn">Sign Up</button>
+        
+        <p class="auth-toggle-text">
+          Already have an account? <a href="#" id="showLogin">Log in here</a>
+        </p>
+      </div>
+
       <div class="auth-error" id="authError"></div>
     </div>
   </div>
@@ -34,7 +63,6 @@
   <!-- TOP CONTROLS -->
   <div class="top-right-controls">
     <button class="top-btn" id="addPetBtn"><i class="fa-solid fa-plus"></i> Add Pet</button>
-    <button class="top-btn" id="themeToggleBtn"><i class="fa-solid fa-palette"></i> Color Scheme</button>
     <button class="top-btn" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
   </div>
 
