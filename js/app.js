@@ -1,25 +1,28 @@
+import { initAuth } from './auth.js';
 import { Pet, pets } from './pet.js';
-import { initAuth, savePetToDB, deletePetFromDB } from './auth.js';
 
 // --- THREE.JS SETUP ---
-const container = document.getElementById('canvas-container');
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 9, 17);
+export const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 5, 10);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-container.appendChild(renderer.domElement);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+export const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI / 2 - 0.02;
+controls.dampingFactor = 0.05;
 
-// Lights & Floor
+// --- LIGHTING & GROUND ---
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 
@@ -28,84 +31,125 @@ dirLight.position.set(10, 20, 10);
 dirLight.castShadow = true;
 scene.add(dirLight);
 
-const arenaSize = 24;
-const floorGeo = new THREE.PlaneGeometry(arenaSize, arenaSize);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x16213e, roughness: 0.8 });
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-scene.add(floor);
+const gridHelper = new THREE.GridHelper(20, 20, 0x4f46e5, 0x2e2e48);
+scene.add(gridHelper);
 
-// --- UI SELECTION LOGIC ---
+const planeGeo = new THREE.PlaneGeometry(20, 20);
+const planeMat = new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.8 });
+const ground = new THREE.Mesh(planeGeo, planeMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// --- RAYCASTING & INTERACTION ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 let selectedPet = null;
 
+// UI Elements
 const petCard = document.getElementById('petCard');
 const petColorInput = document.getElementById('petColor');
-const noteTitle = document.getElementById('noteTitle');
+const noteTitleInput = document.getElementById('noteTitle');
 const noteInput = document.getElementById('noteInput');
+const saveNoteBtn = document.getElementById('saveNoteBtn');
+const deleteNoteBtn = document.getElementById('deleteNoteBtn');
+const closeCardBtn = document.getElementById('closeCardBtn');
+const addPetBtn = document.getElementById('addPetBtn');
+
+// Add New Pet Button Listener
+if (addPetBtn) {
+  addPetBtn.addEventListener('click', () => {
+    const newPet = new Pet();
+    selectPet(newPet);
+  });
+}
+
+// Canvas Click Handler
+window.addEventListener('click', (e) => {
+  // Prevent raycasting if clicking on UI elements
+  if (e.target.closest('#authOverlay') || e.target.closest('.pet-card') || e.target.closest('.top-right-controls')) {
+    return;
+  }
+
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const meshes = pets.map((p) => p.mesh);
+  const intersects = raycaster.intersectObjects(meshes);
+
+  if (intersects.length > 0) {
+    const hitMesh = intersects[0].object;
+    const petInstance = pets.find((p) => p.mesh === hitMesh);
+    if (petInstance) {
+      selectPet(petInstance);
+    }
+  } else {
+    deselectPet();
+  }
+});
 
 function selectPet(pet) {
   selectedPet = pet;
-  if (pet) {
-    petColorInput.value = '#' + pet.material.color.getHexString();
-    noteTitle.value = pet.title;
-    noteInput.value = pet.note;
-    petCard.classList.add('active');
-  } else {
-    petCard.classList.remove('active');
-  }
+  petCard.classList.add('active');
+
+  petColorInput.value = pet.color;
+  noteTitleInput.value = pet.title;
+  noteInput.value = pet.note;
 }
 
-// Event Listeners
-document.getElementById('addPetBtn').addEventListener('click', async () => {
-  const newPet = new Pet();
-  selectPet(newPet);
-  await savePetToDB(newPet);
-});
+function deselectPet() {
+  selectedPet = null;
+  petCard.classList.remove('active');
+}
 
-document.getElementById('closeCardBtn').addEventListener('click', () => selectPet(null));
+// Card Control Event Listeners
+if (closeCardBtn) closeCardBtn.addEventListener('click', deselectPet);
 
-petColorInput.addEventListener('input', (e) => {
-  if (selectedPet) {
-    selectedPet.color = e.target.value;
-    selectedPet.material.color.set(e.target.value);
-  }
-});
+if (petColorInput) {
+  petColorInput.addEventListener('input', (e) => {
+    if (selectedPet) selectedPet.setColor(e.target.value);
+  });
+}
 
-document.getElementById('saveNoteBtn').addEventListener('click', async () => {
-  if (selectedPet) {
-    selectedPet.title = noteTitle.value;
-    selectedPet.note = noteInput.value;
-    selectedPet.updateLabel();
-    selectedPet.triggerWiggle();
-    await savePetToDB(selectedPet);
-    selectPet(null);
-  }
-});
+if (saveNoteBtn) {
+  saveNoteBtn.addEventListener('click', async () => {
+    if (selectedPet) {
+      selectedPet.title = noteTitleInput.value;
+      selectedPet.note = noteInput.value;
+      await selectedPet.save();
+      deselectPet();
+    }
+  });
+}
 
-document.getElementById('deleteNoteBtn').addEventListener('click', async () => {
-  if (selectedPet) {
-    await deletePetFromDB(selectedPet);
-    selectPet(null);
-  }
-});
+if (deleteNoteBtn) {
+  deleteNoteBtn.addEventListener('click', async () => {
+    if (selectedPet) {
+      await selectedPet.delete();
+      deselectPet();
+    }
+  });
+}
 
-// Resize handler
+// Window Resize Handler
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Init Auth and Animation Loop
-initAuth();
-
-const clock = new THREE.Clock();
+// Animation Loop
 function animate() {
   requestAnimationFrame(animate);
-  const delta = clock.getDelta();
-  pets.forEach((pet) => pet.update(delta));
   controls.update();
+
+  pets.forEach((pet) => pet.update());
+
   renderer.render(scene, camera);
 }
+
+// Initialize Application
+initAuth();
 animate();
