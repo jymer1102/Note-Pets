@@ -1,6 +1,7 @@
 import { initAuth } from './auth.js';
 import { Pet, pets } from './pet.js';
 
+// --- MAIN THREE.JS SCENE SETUP ---
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
 
@@ -40,7 +41,58 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// RAYCASTING & DRAGGING
+// --- PREVIEW WINDOW (MINI THREE.JS SCENE FOR EDITING) ---
+let previewScene, previewCamera, previewRenderer, previewPetGroup;
+
+function initPreviewWindow() {
+  const petCard = document.getElementById('petCard');
+  
+  // Create preview container if not present in HTML
+  let previewContainer = document.getElementById('petPreviewContainer');
+  if (!previewContainer) {
+    previewContainer = document.createElement('div');
+    previewContainer.id = 'petPreviewContainer';
+    previewContainer.style.width = '100%';
+    previewContainer.style.height = '150px';
+    previewContainer.style.borderRadius = '12px';
+    previewContainer.style.overflow = 'hidden';
+    previewContainer.style.marginBottom = '15px';
+    previewContainer.style.background = '#111122';
+    
+    // Insert preview box at the top of petCard
+    petCard.insertBefore(previewContainer, petCard.firstChild.nextSibling);
+  }
+
+  previewScene = new THREE.Scene();
+  previewScene.background = new THREE.Color(0x16162a);
+
+  previewCamera = new THREE.PerspectiveCamera(45, previewContainer.clientWidth / 150, 0.1, 100);
+  previewCamera.position.set(0, 0.8, 2.5);
+
+  const previewLight = new THREE.DirectionalLight(0xffffff, 1);
+  previewLight.position.set(2, 5, 3);
+  previewScene.add(previewLight);
+  previewScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+  previewRenderer = new THREE.WebGLRenderer({ antialias: true });
+  previewRenderer.setSize(previewContainer.clientWidth, 150);
+  previewRenderer.setPixelRatio(window.devicePixelRatio);
+  previewContainer.appendChild(previewRenderer.domElement);
+}
+
+function updatePreviewPet(pet) {
+  if (!previewScene) initPreviewWindow();
+
+  // Clear previous preview mesh
+  if (previewPetGroup) previewScene.remove(previewPetGroup);
+
+  // Clone pet group for spinning preview
+  previewPetGroup = pet.group.clone();
+  previewPetGroup.position.set(0, -0.2, 0);
+  previewScene.add(previewPetGroup);
+}
+
+// --- RAYCASTING & DRAG CONTROLS ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -85,7 +137,7 @@ window.addEventListener('pointerdown', (e) => {
     if (petInstance) {
       draggedPet = petInstance;
       draggedPet.isDragging = true;
-      controls.enabled = false; // Disable camera orbit while dragging pet
+      controls.enabled = false;
       selectPet(petInstance);
     }
   } else {
@@ -113,7 +165,7 @@ window.addEventListener('pointerup', () => {
   if (draggedPet) {
     draggedPet.isDragging = false;
     draggedPet = null;
-    controls.enabled = true; // Re-enable camera orbit
+    controls.enabled = true;
   }
 });
 
@@ -124,6 +176,8 @@ function selectPet(pet) {
   petColorInput.value = pet.color;
   noteTitleInput.value = pet.title;
   noteInput.value = pet.note;
+
+  updatePreviewPet(pet);
 }
 
 function deselectPet() {
@@ -133,28 +187,50 @@ function deselectPet() {
 
 if (closeCardBtn) closeCardBtn.addEventListener('click', deselectPet);
 
+// Live Color Preview
 if (petColorInput) {
   petColorInput.addEventListener('input', (e) => {
-    if (selectedPet) selectedPet.setColor(e.target.value);
+    if (selectedPet) {
+      selectedPet.setColor(e.target.value);
+      if (previewPetGroup) {
+        previewPetGroup.traverse((child) => {
+          if (child.isMesh && child.material && child !== previewPetGroup.children[1]) {
+            child.material.color.set(e.target.value);
+          }
+        });
+      }
+    }
   });
 }
 
+// Save with bounce animation
 if (saveNoteBtn) {
   saveNoteBtn.addEventListener('click', async () => {
     if (selectedPet) {
-      selectedPet.updateLabel(noteTitleInput.value);
+      const newTitle = noteTitleInput.value.trim() || 'My Pet';
+      selectedPet.updateLabel(newTitle);
       selectedPet.note = noteInput.value;
+
+      // Play save bounce animation
+      selectedPet.playSaveAnimation();
+
       await selectedPet.save();
       deselectPet();
     }
   });
 }
 
+// Delete with fade/shrink animation
 if (deleteNoteBtn) {
   deleteNoteBtn.addEventListener('click', async () => {
     if (selectedPet) {
-      await selectedPet.delete();
+      const petToDelete = selectedPet;
       deselectPet();
+      
+      // Play delete shrink animation before removing from DB
+      petToDelete.playDeleteAnimation(async () => {
+        await petToDelete.delete();
+      });
     }
   });
 }
@@ -165,11 +241,18 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// --- ANIMATION LOOP ---
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
 
   pets.forEach((pet) => pet.update());
+
+  // Slow spin for pet preview window
+  if (previewPetGroup) {
+    previewPetGroup.rotation.y += 0.015;
+    previewRenderer.render(previewScene, previewCamera);
+  }
 
   renderer.render(scene, camera);
 }
