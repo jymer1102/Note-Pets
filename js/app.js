@@ -1,5 +1,5 @@
 import { initAuth } from './auth.js';
-import { Pet, pets } from './pet.js';
+import { Pet, pets, disposePreviewClone } from './pet.js';
 
 // --- MAIN THREE.JS SCENE SETUP ---
 export const scene = new THREE.Scene();
@@ -42,23 +42,27 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 // --- PREVIEW WINDOW (MINI THREE.JS SCENE FOR EDITING) ---
-let previewScene, previewCamera, previewRenderer, previewPetGroup;
+const PREVIEW_HEIGHT = 150;
+const PREVIEW_SPIN_SPEED = (Math.PI * 2) / 6; // one slow 360° spin every 6 seconds
+
+let previewScene, previewCamera, previewRenderer;
+let currentPreview = null; // { group, bodyMaterial, eyeMaterial } from Pet#createPreviewClone
 
 function initPreviewWindow() {
   const petCard = document.getElementById('petCard');
-  
+
   // Create preview container if not present in HTML
   let previewContainer = document.getElementById('petPreviewContainer');
   if (!previewContainer) {
     previewContainer = document.createElement('div');
     previewContainer.id = 'petPreviewContainer';
     previewContainer.style.width = '100%';
-    previewContainer.style.height = '150px';
+    previewContainer.style.height = `${PREVIEW_HEIGHT}px`;
     previewContainer.style.borderRadius = '12px';
     previewContainer.style.overflow = 'hidden';
     previewContainer.style.marginBottom = '15px';
     previewContainer.style.background = '#111122';
-    
+
     // Insert preview box at the top of petCard
     petCard.insertBefore(previewContainer, petCard.firstChild.nextSibling);
   }
@@ -66,8 +70,9 @@ function initPreviewWindow() {
   previewScene = new THREE.Scene();
   previewScene.background = new THREE.Color(0x16162a);
 
-  previewCamera = new THREE.PerspectiveCamera(45, previewContainer.clientWidth / 150, 0.1, 100);
-  previewCamera.position.set(0, 0.8, 2.5);
+  previewCamera = new THREE.PerspectiveCamera(45, previewContainer.clientWidth / PREVIEW_HEIGHT, 0.1, 100);
+  previewCamera.position.set(0, 0.9, 3);
+  previewCamera.lookAt(0, 0.1, 0);
 
   const previewLight = new THREE.DirectionalLight(0xffffff, 1);
   previewLight.position.set(2, 5, 3);
@@ -75,21 +80,26 @@ function initPreviewWindow() {
   previewScene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
   previewRenderer = new THREE.WebGLRenderer({ antialias: true });
-  previewRenderer.setSize(previewContainer.clientWidth, 150);
+  previewRenderer.setSize(previewContainer.clientWidth, PREVIEW_HEIGHT);
   previewRenderer.setPixelRatio(window.devicePixelRatio);
   previewContainer.appendChild(previewRenderer.domElement);
+}
+
+function clearPreview() {
+  if (currentPreview) {
+    previewScene.remove(currentPreview.group);
+    disposePreviewClone(currentPreview);
+    currentPreview = null;
+  }
 }
 
 function updatePreviewPet(pet) {
   if (!previewScene) initPreviewWindow();
 
-  // Clear previous preview mesh
-  if (previewPetGroup) previewScene.remove(previewPetGroup);
+  clearPreview();
 
-  // Clone pet group for spinning preview
-  previewPetGroup = pet.group.clone();
-  previewPetGroup.position.set(0, -0.2, 0);
-  previewScene.add(previewPetGroup);
+  currentPreview = pet.createPreviewClone();
+  previewScene.add(currentPreview.group);
 }
 
 // --- RAYCASTING & DRAG CONTROLS ---
@@ -127,7 +137,7 @@ window.addEventListener('pointerdown', (e) => {
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
-  const meshes = pets.map((p) => p.mesh);
+  const meshes = pets.flatMap((p) => p.hitMeshes);
   const intersects = raycaster.intersectObjects(meshes);
 
   if (intersects.length > 0) {
@@ -183,22 +193,19 @@ function selectPet(pet) {
 function deselectPet() {
   selectedPet = null;
   petCard.classList.remove('active');
+  clearPreview();
 }
 
 if (closeCardBtn) closeCardBtn.addEventListener('click', deselectPet);
 
-// Live Color Preview
+// Live Color Preview - updates both the live pet and the mini preview model
 if (petColorInput) {
   petColorInput.addEventListener('input', (e) => {
     if (selectedPet) {
       selectedPet.setColor(e.target.value);
-      if (previewPetGroup) {
-        previewPetGroup.traverse((child) => {
-          if (child.isMesh && child.material && child !== previewPetGroup.children[1]) {
-            child.material.color.set(e.target.value);
-          }
-        });
-      }
+    }
+    if (currentPreview) {
+      currentPreview.bodyMaterial.color.set(e.target.value);
     }
   });
 }
@@ -226,8 +233,8 @@ if (deleteNoteBtn) {
     if (selectedPet) {
       const petToDelete = selectedPet;
       deselectPet();
-      
-      // Play delete shrink animation before removing from DB
+
+      // Play delete shrink animation before removing from the scene and Supabase
       petToDelete.playDeleteAnimation(async () => {
         await petToDelete.delete();
       });
@@ -242,15 +249,21 @@ window.addEventListener('resize', () => {
 });
 
 // --- ANIMATION LOOP ---
+const clock = new THREE.Clock();
+
 function animate() {
   requestAnimationFrame(animate);
+  // Clamp delta so a backgrounded/inactive tab doesn't cause a huge jump
+  // (e.g. an instant full spawn/save animation) when it regains focus.
+  const delta = Math.min(clock.getDelta(), 0.1);
+
   controls.update();
 
-  pets.forEach((pet) => pet.update());
+  pets.forEach((pet) => pet.update(delta));
 
-  // Slow spin for pet preview window
-  if (previewPetGroup) {
-    previewPetGroup.rotation.y += 0.015;
+  // Slow continuous 360° spin for the pet preview window
+  if (currentPreview) {
+    currentPreview.group.rotation.y += delta * PREVIEW_SPIN_SPEED;
     previewRenderer.render(previewScene, previewCamera);
   }
 
