@@ -33,7 +33,7 @@
 
   <!-- AUTH MODAL -->
   <div class="auth-overlay" id="authOverlay">
-    <div class="auth-card">
+    <div class="auth-card js-interactive-container">
       <h2><i class="fa-solid fa-paw"></i> Pet Playground</h2>
 
       <!-- LOGIN FORM -->
@@ -83,12 +83,12 @@
 
   <!-- TOP CONTROLS -->
   <div class="top-right-controls" id="topControls" style="display: none;">
-    <button class="top-btn" id="addPetBtn" type="button"><i class="fa-solid fa-plus"></i> Add Pet</button>
-    <button class="top-btn" id="logoutBtn" type="button"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    <button class="top-btn js-interactive-container" id="addPetBtn" type="button"><i class="fa-solid fa-plus"></i> Add Pet</button>
+    <button class="top-btn js-interactive-container" id="logoutBtn" type="button"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
   </div>
 
   <!-- PET DETAILS CARD -->
-  <div class="pet-card" id="petCard">
+  <div class="pet-card js-interactive-container" id="petCard">
     <h3>
       <span><i class="fa-solid fa-paw"></i> Pet Details</span>
       <button class="close-btn" id="closeCardBtn" type="button"><i class="fa-solid fa-xmark"></i></button>
@@ -103,12 +103,43 @@
     <textarea id="noteInput" placeholder="Add a note for this pet..."></textarea>
     
     <div class="btn-group">
-      <button class="btn-save" id="saveNoteBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Pet</button>
-      <button class="btn-delete" id="deleteNoteBtn" type="button"><i class="fa-solid fa-trash-can"></i> Delete Pet</button>
+      <button class="btn-save js-interactive-container" id="saveNoteBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Pet</button>
+      <button class="btn-delete js-interactive-container" id="deleteNoteBtn" type="button"><i class="fa-solid fa-trash-can"></i> Delete Pet</button>
     </div>
   </div>
 
   <!-- Application Module Entry Point -->
   <script type="module" src="js/app.js"></script>
+
+  <!-- Interactive glow: tracks the cursor position over each
+       .js-interactive-container element so the CSS radial glow
+       (style.css) follows the mouse instead of sitting centered. -->
+  <script>
+    function bindGlow(el) {
+      el.addEventListener('mousemove', (e) => {
+        const rect = el.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        el.style.setProperty('--mx', `${x}%`);
+        el.style.setProperty('--my', `${y}%`);
+      });
+    }
+
+    document.querySelectorAll('.js-interactive-container').forEach(bindGlow);
+
+    // The pet edit card is dynamically shown/hidden and new dynamically
+    // injected controls (theme swatches, etc.) are added by app.js after
+    // load, so also bind any glow containers added later.
+    const glowObserver = new MutationObserver((mutations) => {
+      mutations.forEach((m) => {
+        m.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          if (node.classList?.contains('js-interactive-container')) bindGlow(node);
+          node.querySelectorAll?.('.js-interactive-container').forEach(bindGlow);
+        });
+      });
+    });
+    glowObserver.observe(document.body, { childList: true, subtree: true });
+  </script>
 </body>
 </html>
