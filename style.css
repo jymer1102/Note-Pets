@@ -1,15 +1,74 @@
+/* ==========================================================================
+  Pet Playground — Site Stylesheet
+  Design language ported from the jymer1102 site: fonts, accent tokens,
+  interactive card glow, glowing buttons/borders, and the custom cursor.
+  ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Surfaces */
+  --bg: #0a0a0c;
+  --bg-raised: #111116;
+  --bg-card-from: #131318;
+  --bg-card-to: #17171d;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(30, 86, 224, 0.85);
+
+  /* Accent (deep electric blue) */
+  --accent: #1E56E0;
+  --accent-bright: #4FA9FF;
+  --accent-dim: rgba(30, 86, 224, 0.14);
+  --accent-glow: rgba(30, 86, 224, 0.35);
+
+  /* Text */
+  --text-1: #f7f7f7;
+  --text-2: #a3a3ac;
+  --text-3: #6c6c75;
+
+  /* Status */
+  --green: #2ecc71;
+  --amber: #f39c12;
+  --red: #e74c3c;
+
+  /* Type */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --ease: cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-body);
   user-select: none;
+}
+
+h2, h3 {
+  font-family: var(--font-display);
 }
 
 body {
   overflow: hidden;
-  background-color: #1a1a2e;
-  color: #fff;
+  background-color: var(--bg);
+  color: var(--text-1);
+}
+
+/* --- Custom cursor --- */
+html, body {
+  cursor: url('images/cursor/custom-j-cursor.png') 0 0, default;
+}
+
+a, button, select, input, textarea, .top-btn, .close-btn,
+.btn-save, .btn-delete, .auth-btn, .btn-toggle, .toggle-password,
+input[type="color"] {
+  cursor: url('images/cursor/custom-j-cursor-pointer.png') 0 0, pointer;
 }
 
 #canvas-container {
@@ -19,6 +78,51 @@ body {
   top: 0;
   left: 0;
   z-index: 1;
+}
+
+/* --- Interactive glow utility ---
+  Cards/buttons tagged .js-interactive-container get a mouse-tracking
+  radial glow (position set via --mx/--my by app.js) plus a bright
+  accent border and shadow on hover/focus. */
+.js-interactive-container {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border: 1px solid var(--border);
+  transition: border-color 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+
+.js-interactive-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    300px circle at var(--mx, 50%) var(--my, 50%),
+    var(--accent-glow),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.js-interactive-container:hover::before,
+.js-interactive-container:active::before,
+.js-interactive-container:focus-within::before {
+  opacity: 1;
+}
+
+.js-interactive-container:hover,
+.js-interactive-container:active,
+.js-interactive-container:focus-within {
+  border-color: var(--border-hover) !important;
+  box-shadow: 0 0 25px var(--accent-glow);
+}
+
+.js-interactive-container > * {
+  position: relative;
+  z-index: 2;
 }
 
 /* --- AUTH OVERLAY --- */
@@ -37,18 +141,23 @@ body {
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(160deg, var(--bg-card-from), var(--bg-card-to));
+  border-radius: var(--radius-lg);
   padding: 30px;
   width: 360px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   text-align: center;
 }
 
 .auth-card h2 {
   margin-bottom: 20px;
   font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.auth-card h2 i {
+  color: var(--accent-bright);
 }
 
 .input-container {
@@ -61,13 +170,19 @@ body {
 
 .auth-card input {
   width: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
   padding: 10px 40px 10px 12px;
   outline: none;
   font-size: 0.9rem;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.auth-card input:focus {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .toggle-password {
@@ -75,15 +190,14 @@ body {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #888;
-  cursor: pointer;
+  color: var(--text-3);
   font-size: 0.9rem;
-  transition: color 0.2s;
+  transition: color 0.2s var(--ease);
   z-index: 2;
 }
 
 .toggle-password:hover {
-  color: #fff;
+  color: var(--accent-bright);
 }
 
 .check-icon {
@@ -95,42 +209,39 @@ body {
   z-index: 2;
 }
 
-.check-icon.valid {
-  color: #22c55e;
-}
-
-.check-icon.invalid {
-  color: #ef4444;
-}
+.check-icon.valid { color: var(--green); }
+.check-icon.invalid { color: var(--red); }
 
 .auth-btn {
   width: 100%;
   padding: 12px;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 0.95rem;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease),
+    color 0.25s var(--ease), background 0.25s var(--ease), transform 0.1s var(--ease);
   margin-top: 5px;
 }
 
 .btn-login,
 .btn-signup {
-  background: #4f46e5;
+  background: var(--accent);
   color: white;
 }
 
 .btn-login:hover,
 .btn-signup:hover {
-  background: #4338ca;
+  background: var(--accent);
+  border-color: var(--border-hover);
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 /* TOGGLE CONTAINER & BUTTON */
 .auth-toggle-container {
   margin-top: 20px;
   padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -140,24 +251,26 @@ body {
 
 .auth-toggle-container span {
   font-size: 0.85rem;
-  color: #aaa;
+  color: var(--text-2);
 }
 
 .btn-toggle {
   width: 100%;
   padding: 12px;
-  background: #4f46e5;
-  border: none;
-  border-radius: 8px;
-  color: #fff;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
   font-size: 0.95rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease), transform 0.1s var(--ease);
 }
 
 .btn-toggle:hover {
-  background: #4338ca;
+  border-color: var(--border-hover);
+  color: var(--accent-bright);
+  box-shadow: 0 0 14px var(--accent-glow);
 }
 
 .btn-toggle:active,
@@ -166,7 +279,7 @@ body {
 }
 
 .auth-error {
-  color: #f43f5e;
+  color: var(--red);
   font-size: 0.8rem;
   margin-top: 12px;
   min-height: 1.2em;
@@ -185,22 +298,21 @@ body {
 .top-btn {
   background: rgba(20, 20, 35, 0.75);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--text-1);
   padding: 10px 16px;
   border-radius: 30px;
-  cursor: pointer;
   font-weight: 600;
   font-size: 0.9rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease),
+    color 0.25s var(--ease), transform 0.2s var(--ease);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .top-btn:hover {
-  background: rgba(40, 40, 65, 0.9);
+  color: var(--accent-bright);
   transform: translateY(-2px);
 }
 
@@ -210,10 +322,9 @@ body {
   top: 20px;
   left: 20px;
   z-index: 10;
-  background: rgba(20, 20, 35, 0.75);
+  background: linear-gradient(160deg, var(--bg-card-from), var(--bg-card-to));
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 18px;
   width: 300px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
@@ -224,18 +335,27 @@ body {
 
 .pet-card h3 {
   font-size: 1rem;
+  font-weight: 600;
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.pet-card h3 i {
+  color: var(--accent-bright);
+}
+
 .close-btn {
   background: none;
   border: none;
-  color: #aaa;
-  cursor: pointer;
+  color: var(--text-2);
   font-size: 1rem;
+  transition: color 0.2s var(--ease);
+}
+
+.close-btn:hover {
+  color: var(--accent-bright);
 }
 
 .control-group {
@@ -245,25 +365,38 @@ body {
   margin-bottom: 12px;
 }
 
+.control-group label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 input[type="color"] {
   border: none;
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  cursor: pointer;
   background: none;
 }
 
 input[type="text"], textarea {
   width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
   padding: 8px 10px;
   margin-bottom: 10px;
   outline: none;
   font-size: 0.85rem;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+input[type="text"]:focus, textarea:focus {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 textarea { height: 80px; resize: none; }
@@ -273,15 +406,37 @@ textarea { height: 80px; resize: none; }
 .btn-group button {
   flex: 1;
   padding: 8px;
-  border-radius: 8px;
-  border: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
   font-weight: 600;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease),
+    transform 0.15s var(--ease), background 0.25s var(--ease);
 }
 
-.btn-save { background: #4f46e5; color: white; }
-.btn-delete { background: #e11d48; color: white; }
+.btn-save {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-save:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+
+.btn-delete {
+  background: var(--red);
+  color: white;
+}
+
+.btn-delete:hover {
+  border-color: rgba(231, 76, 60, 0.85);
+  box-shadow: 0 0 18px rgba(231, 76, 60, 0.35);
+}
+
+.btn-group button:active {
+  transform: scale(0.97);
+}
