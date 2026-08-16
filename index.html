@@ -115,14 +115,36 @@
        .js-interactive-container element so the CSS radial glow
        (style.css) follows the mouse instead of sitting centered. -->
   <script>
+    function updateGlow(el, clientX, clientY) {
+      const rect = el.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * 100;
+      const y = ((clientY - rect.top) / rect.height) * 100;
+      el.style.setProperty('--mx', `${x}%`);
+      el.style.setProperty('--my', `${y}%`);
+    }
+
     function bindGlow(el) {
-      el.addEventListener('mousemove', (e) => {
-        const rect = el.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        el.style.setProperty('--mx', `${x}%`);
-        el.style.setProperty('--my', `${y}%`);
-      });
+      el.addEventListener('mousemove', (e) => updateGlow(el, e.clientX, e.clientY));
+
+      // Touch: track the finger while it's down (touchstart + touchmove),
+      // same as the mouse-hover glow, so dragging a finger across a card
+      // or button moves the glow with it instead of leaving it centered.
+      el.addEventListener(
+        'touchstart',
+        (e) => {
+          const touch = e.touches[0];
+          if (touch) updateGlow(el, touch.clientX, touch.clientY);
+        },
+        { passive: true }
+      );
+      el.addEventListener(
+        'touchmove',
+        (e) => {
+          const touch = e.touches[0];
+          if (touch) updateGlow(el, touch.clientX, touch.clientY);
+        },
+        { passive: true }
+      );
     }
 
     document.querySelectorAll('.js-interactive-container').forEach(bindGlow);
