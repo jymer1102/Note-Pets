@@ -136,21 +136,22 @@ export class Pet {
     this.bodyMesh.userData.petInstance = this;
     this.group.add(this.bodyMesh);
 
-    // Eyes - flat textured quads so the expression (dot / happy / closed)
-    // can be swapped live by changing which canvas texture is mapped on.
-    this.eyeMaterial = new THREE.MeshBasicMaterial({
+    // Eyes - camera-facing sprites (like the title label) so the expression
+    // (dot / happy / closed) always renders crisp and correctly oriented,
+    // instead of a flat plane that can be seen edge-on as the pet turns.
+    this.eyeMaterial = new THREE.SpriteMaterial({
       map: EYE_TEXTURES.normal,
       transparent: true,
-      opacity: 1,
-      side: THREE.DoubleSide
+      opacity: 1
     });
     this._eyeExpression = 'normal';
-    const eyeGeo = new THREE.PlaneGeometry(0.22, 0.18);
 
-    const leftEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
+    const leftEye = new THREE.Sprite(this.eyeMaterial);
+    leftEye.scale.set(0.22, 0.18, 1);
     leftEye.position.set(-0.18, 0.15 * scaleY, 0.42);
 
-    const rightEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
+    const rightEye = new THREE.Sprite(this.eyeMaterial);
+    rightEye.scale.set(0.22, 0.18, 1);
     rightEye.position.set(0.18, 0.15 * scaleY, 0.42);
 
     this.eyeMeshes = [leftEye, rightEye];
@@ -253,17 +254,17 @@ export class Pet {
       roughness: 0.3,
       metalness: 0.1
     });
-    const eyeMaterial = new THREE.MeshBasicMaterial({
+    const eyeMaterial = new THREE.SpriteMaterial({
       map: EYE_TEXTURES.normal,
-      transparent: true,
-      side: THREE.DoubleSide
+      transparent: true
     });
 
     const body = new THREE.Mesh(this.bodyMesh.geometry.clone(), bodyMaterial);
     group.add(body);
 
     this.eyeMeshes.forEach((eye) => {
-      const m = new THREE.Mesh(eye.geometry.clone(), eyeMaterial);
+      const m = new THREE.Sprite(eyeMaterial);
+      m.scale.copy(eye.scale);
       m.position.copy(eye.position);
       group.add(m);
     });
@@ -425,7 +426,8 @@ export class Pet {
     this.bodyMesh.geometry.dispose();
     this.bodyMaterial.dispose();
 
-    this.eyeMeshes.forEach((m) => m.geometry.dispose());
+    // Eyes are sprites (shared internal geometry managed by three.js) -
+    // only the material needs disposing.
     this.eyeMaterial.dispose();
 
     this.earMeshes.forEach((m) => m.geometry.dispose());
