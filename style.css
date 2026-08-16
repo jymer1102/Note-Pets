@@ -287,9 +287,10 @@ input[type="color"] {
 
 /* --- TOP CONTROLS --- */
 .top-right-controls {
-  position: absolute;
-  top: 20px;
-  right: 20px;
+  position: fixed;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
   display: flex;
   gap: 10px;
