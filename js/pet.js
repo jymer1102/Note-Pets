@@ -16,12 +16,6 @@ function easeOutElastic(t) {
   return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
 }
 
-function easeOutBack(t) {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
-
 function easeOutQuad(t) {
   return 1 - (1 - t) * (1 - t);
 }
@@ -49,6 +43,51 @@ function createTextTexture(text) {
 
   return new THREE.CanvasTexture(canvas);
 }
+
+// --- Eye expressions ---
+// Small canvas-drawn textures swapped onto the shared eye material so pets
+// can flip between a normal dot, happy "^ ^" carets (spawn), and closed
+// "- -" lines (save) without needing separate geometry per expression.
+function createEyeTexture(type) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#000000';
+  ctx.fillStyle = '#000000';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (type === 'happy') {
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.moveTo(8, 42);
+    ctx.lineTo(32, 16);
+    ctx.lineTo(56, 42);
+    ctx.stroke();
+  } else if (type === 'closed') {
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.moveTo(8, 32);
+    ctx.lineTo(56, 32);
+    ctx.stroke();
+  } else {
+    // normal
+    ctx.beginPath();
+    ctx.arc(32, 32, 14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+const EYE_TEXTURES = {
+  normal: createEyeTexture('normal'),
+  happy: createEyeTexture('happy'),
+  closed: createEyeTexture('closed')
+};
 
 export class Pet {
   constructor(data = {}) {
@@ -97,13 +136,16 @@ export class Pet {
     this.bodyMesh.userData.petInstance = this;
     this.group.add(this.bodyMesh);
 
-    // Eyes
+    // Eyes - flat textured quads so the expression (dot / happy / closed)
+    // can be swapped live by changing which canvas texture is mapped on.
     this.eyeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x000000,
+      map: EYE_TEXTURES.normal,
       transparent: true,
-      opacity: 1
+      opacity: 1,
+      side: THREE.DoubleSide
     });
-    const eyeGeo = new THREE.SphereGeometry(0.08, 16, 16);
+    this._eyeExpression = 'normal';
+    const eyeGeo = new THREE.PlaneGeometry(0.22, 0.18);
 
     const leftEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     leftEye.position.set(-0.18, 0.15 * scaleY, 0.42);
@@ -152,7 +194,17 @@ export class Pet {
     this.bounceOffset = Math.random() * Math.PI * 2;
 
     // Animation state
-    this.spawnAnim = { elapsed: 0, duration: 0.7 };
+    // Spawn: falls in from off-screen above, lands, then does a happy
+    // "^ ^" eyed wiggle before settling back to a normal expression.
+    this.spawnAnim = {
+      elapsed: 0,
+      fallDuration: 0.45,
+      landDuration: 0.12,
+      wiggleDuration: 0.55
+    };
+    this.group.position.y = this.baseY + 14; // start well off-screen above
+    this.setEyeExpression('normal');
+
     this.saveAnim = null;
     this.deleteAnim = null;
 
@@ -183,6 +235,13 @@ export class Pet {
     this.bodyMaterial.color.set(hexColor);
   }
 
+  setEyeExpression(type) {
+    if (this._eyeExpression === type) return;
+    this._eyeExpression = type;
+    this.eyeMaterial.map = EYE_TEXTURES[type] || EYE_TEXTURES.normal;
+    this.eyeMaterial.needsUpdate = true;
+  }
+
   // Builds a fully independent copy of this pet (own geometries + own
   // materials) for use in the mini edit-card preview scene, so spinning
   // or recoloring the preview never touches the live pet in the world.
@@ -194,7 +253,11 @@ export class Pet {
       roughness: 0.3,
       metalness: 0.1
     });
-    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const eyeMaterial = new THREE.MeshBasicMaterial({
+      map: EYE_TEXTURES.normal,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
 
     const body = new THREE.Mesh(this.bodyMesh.geometry.clone(), bodyMaterial);
     group.add(body);
@@ -227,39 +290,50 @@ export class Pet {
   }
 
   playSaveAnimation() {
-    this.saveAnim = { elapsed: 0, duration: 0.5 };
+    this.saveAnim = { elapsed: 0, duration: 0.55 };
   }
 
   playDeleteAnimation(onComplete) {
-    this.deleteAnim = { elapsed: 0, duration: 0.45, done: false, onComplete };
+    this.deleteAnim = { elapsed: 0, bulgeDuration: 0.18, popDuration: 0.18, done: false, onComplete };
   }
 
-  // Squish-then-pop scale multiplier for the save animation.
-  _saveScaleMultiplier(t) {
-    if (t < 0.35) {
-      const k = t / 0.35;
-      return THREE.MathUtils.lerp(1, 0.8, easeOutQuad(k));
-    }
-    const k = (t - 0.35) / 0.65;
-    return THREE.MathUtils.lerp(0.8, 1, easeOutBack(k));
+  // A decaying side-to-side roll used for both the post-landing spawn
+  // wiggle and the save wiggle. Returns the current rotation.z value.
+  _wiggleRotation(t) {
+    const amplitude = 0.32 * (1 - t);
+    return Math.sin(t * Math.PI * 6) * amplitude;
   }
 
   update(delta = 1 / 60) {
-    // Delete animation takes over completely: shrink + fade, then fire the callback once.
+    // Delete animation takes over completely: bulge outward then pop
+    // (rapid vanish + fade), then fire the callback once.
     if (this.deleteAnim) {
-      this.deleteAnim.elapsed += delta;
-      const t = Math.min(this.deleteAnim.elapsed / this.deleteAnim.duration, 1);
-      const scale = Math.max(1 - easeInQuad(t), 0.001);
-      this.group.scale.setScalar(scale);
+      const s = this.deleteAnim;
+      s.elapsed += delta;
+      const bulgeEnd = s.bulgeDuration;
+      const popEnd = bulgeEnd + s.popDuration;
+      const t = Math.min(s.elapsed, popEnd);
 
-      const opacity = 1 - t;
+      let scale;
+      let opacity = 1;
+
+      if (t < bulgeEnd) {
+        const k = t / bulgeEnd;
+        scale = THREE.MathUtils.lerp(1, 1.35, easeOutQuad(k));
+      } else {
+        const k = (t - bulgeEnd) / s.popDuration;
+        scale = THREE.MathUtils.lerp(1.35, 0, easeInQuad(k));
+        opacity = 1 - k;
+      }
+
+      this.group.scale.setScalar(Math.max(scale, 0.001));
       this.bodyMaterial.opacity = opacity;
       this.eyeMaterial.opacity = opacity;
       if (this.labelSprite) this.labelSprite.material.opacity = opacity;
 
-      if (t >= 1 && !this.deleteAnim.done) {
-        this.deleteAnim.done = true;
-        this.deleteAnim.onComplete();
+      if (s.elapsed >= popEnd && !s.done) {
+        s.done = true;
+        s.onComplete();
       }
       return;
     }
@@ -284,26 +358,55 @@ export class Pet {
 
     let scaleMult = 1;
     let dropOffset = 0;
+    let rotZ = 0;
 
-    // Spawn: springy drop-in / scale bounce
+    // Spawn: fall from off-screen, land with a squash, then a happy
+    // "^ ^" eyed wiggle before settling back to a normal expression.
     if (this.spawnAnim) {
-      this.spawnAnim.elapsed += delta;
-      const t = Math.min(this.spawnAnim.elapsed / this.spawnAnim.duration, 1);
-      scaleMult *= easeOutElastic(t);
-      dropOffset = (1 - easeOutBack(t)) * 1.5;
-      if (t >= 1) this.spawnAnim = null;
+      const s = this.spawnAnim;
+      s.elapsed += delta;
+      const fallEnd = s.fallDuration;
+      const landEnd = fallEnd + s.landDuration;
+      const wiggleEnd = landEnd + s.wiggleDuration;
+
+      if (s.elapsed < fallEnd) {
+        // Falling: accelerating drop like gravity, eyes still normal.
+        const t = s.elapsed / fallEnd;
+        dropOffset = (1 - easeInQuad(t)) * 14;
+        this.setEyeExpression('normal');
+      } else if (s.elapsed < landEnd) {
+        // Impact: quick squash-flat.
+        const t = (s.elapsed - fallEnd) / s.landDuration;
+        scaleMult = THREE.MathUtils.lerp(1, 0.6, Math.sin(t * Math.PI));
+        this.setEyeExpression('happy');
+      } else if (s.elapsed < wiggleEnd) {
+        // Wiggle: rock side-to-side while bouncing scale back to normal.
+        const t = (s.elapsed - landEnd) / s.wiggleDuration;
+        scaleMult = easeOutElastic(Math.min(t * 2, 1));
+        rotZ = this._wiggleRotation(t);
+        this.setEyeExpression('happy');
+      } else {
+        this.setEyeExpression('normal');
+        this.spawnAnim = null;
+      }
     }
 
-    // Save: squish-and-pop bounce
+    // Save: wiggle with eyes closed, same motion as the spawn wiggle.
     if (this.saveAnim) {
-      this.saveAnim.elapsed += delta;
-      const t = Math.min(this.saveAnim.elapsed / this.saveAnim.duration, 1);
-      scaleMult *= this._saveScaleMultiplier(t);
-      if (t >= 1) this.saveAnim = null;
+      const s = this.saveAnim;
+      s.elapsed += delta;
+      const t = Math.min(s.elapsed / s.duration, 1);
+      rotZ = this._wiggleRotation(t);
+      this.setEyeExpression('closed');
+      if (t >= 1) {
+        this.setEyeExpression('normal');
+        this.saveAnim = null;
+      }
     }
 
     this.group.scale.setScalar(Math.max(scaleMult, 0.001));
     this.group.position.y = this.baseY + bob + dropOffset;
+    this.group.rotation.z = rotZ;
   }
 
   async save() {
