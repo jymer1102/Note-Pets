@@ -375,10 +375,11 @@ export class Pet {
         dropOffset = (1 - easeInQuad(t)) * 14;
         this.setEyeExpression('normal');
       } else if (s.elapsed < landEnd) {
-        // Impact: quick squash-flat.
+        // Impact: quick squash-flat. Eyes stay normal here - they only
+        // change during the wiggle itself, not the landing squash.
         const t = (s.elapsed - fallEnd) / s.landDuration;
         scaleMult = THREE.MathUtils.lerp(1, 0.6, Math.sin(t * Math.PI));
-        this.setEyeExpression('happy');
+        this.setEyeExpression('normal');
       } else if (s.elapsed < wiggleEnd) {
         // Wiggle: rock side-to-side while bouncing scale back to normal.
         const t = (s.elapsed - landEnd) / s.wiggleDuration;
