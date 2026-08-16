@@ -102,6 +102,96 @@ function updatePreviewPet(pet) {
   previewScene.add(currentPreview.group);
 }
 
+// --- COLOR THEMES ---
+// Curated palettes the user can pick a pet color from, in addition to the
+// free-form color input. Purely a UI convenience layer over Pet#setColor.
+const COLOR_THEMES = [
+  { name: 'Pastel', colors: ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e0bbff'] },
+  { name: 'Neon', colors: ['#ff206e', '#fbff12', '#05f2af', '#00f5ff', '#ff9f1c', '#7b2ff7'] },
+  { name: 'Earth', colors: ['#8d6e63', '#a1887f', '#c9b458', '#6d8b74', '#4e6151', '#d7a86e'] },
+  { name: 'Ocean', colors: ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8', '#48cae4'] },
+  { name: 'Sunset', colors: ['#ff9a8b', '#ff6a88', '#ff99ac', '#fecd1a', '#ff6f61', '#c94b4b'] }
+];
+
+let activeThemeIndex = 0;
+let themeUI = null; // { container, tabsEl, swatchesEl }
+
+function buildThemeUI() {
+  if (themeUI) return themeUI;
+
+  const container = document.createElement('div');
+  container.className = 'control-group theme-picker';
+  container.style.marginTop = '4px';
+  container.style.marginBottom = '15px';
+
+  const label = document.createElement('label');
+  label.textContent = 'Color Theme:';
+  container.appendChild(label);
+
+  const tabsEl = document.createElement('div');
+  tabsEl.style.display = 'flex';
+  tabsEl.style.flexWrap = 'wrap';
+  tabsEl.style.gap = '6px';
+  tabsEl.style.margin = '6px 0 10px';
+
+  const swatchesEl = document.createElement('div');
+  swatchesEl.style.display = 'flex';
+  swatchesEl.style.flexWrap = 'wrap';
+  swatchesEl.style.gap = '8px';
+
+  COLOR_THEMES.forEach((theme, i) => {
+    const tabBtn = document.createElement('button');
+    tabBtn.type = 'button';
+    tabBtn.textContent = theme.name;
+    tabBtn.style.padding = '4px 10px';
+    tabBtn.style.borderRadius = '999px';
+    tabBtn.style.border = '1px solid rgba(255,255,255,0.2)';
+    tabBtn.style.background = i === activeThemeIndex ? '#4f46e5' : 'rgba(255,255,255,0.08)';
+    tabBtn.style.color = '#fff';
+    tabBtn.style.fontSize = '12px';
+    tabBtn.style.cursor = 'pointer';
+    tabBtn.addEventListener('click', () => {
+      activeThemeIndex = i;
+      renderThemeTabs();
+      renderThemeSwatches();
+    });
+    tabsEl.appendChild(tabBtn);
+  });
+
+  container.appendChild(tabsEl);
+  container.appendChild(swatchesEl);
+
+  themeUI = { container, tabsEl, swatchesEl };
+  return themeUI;
+}
+
+function renderThemeTabs() {
+  Array.from(themeUI.tabsEl.children).forEach((btn, i) => {
+    btn.style.background = i === activeThemeIndex ? '#4f46e5' : 'rgba(255,255,255,0.08)';
+  });
+}
+
+function renderThemeSwatches() {
+  const swatchesEl = themeUI.swatchesEl;
+  swatchesEl.innerHTML = '';
+
+  const activeColor = (document.getElementById('petColor')?.value || '').toLowerCase();
+
+  COLOR_THEMES[activeThemeIndex].colors.forEach((hex) => {
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.title = hex;
+    swatch.style.width = '28px';
+    swatch.style.height = '28px';
+    swatch.style.borderRadius = '50%';
+    swatch.style.border = hex.toLowerCase() === activeColor ? '2px solid #fff' : '2px solid rgba(255,255,255,0.25)';
+    swatch.style.background = hex;
+    swatch.style.cursor = 'pointer';
+    swatch.addEventListener('click', () => applyPetColor(hex));
+    swatchesEl.appendChild(swatch);
+  });
+}
+
 // --- RAYCASTING & DRAG CONTROLS ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -179,6 +269,13 @@ window.addEventListener('pointerup', () => {
   }
 });
 
+function applyPetColor(hex) {
+  petColorInput.value = hex;
+  if (selectedPet) selectedPet.setColor(hex);
+  if (currentPreview) currentPreview.bodyMaterial.color.set(hex);
+  if (themeUI) renderThemeSwatches();
+}
+
 function selectPet(pet) {
   selectedPet = pet;
   petCard.classList.add('active');
@@ -188,6 +285,13 @@ function selectPet(pet) {
   noteInput.value = pet.note;
 
   updatePreviewPet(pet);
+
+  const ui = buildThemeUI();
+  if (!ui.container.isConnected) {
+    petColorInput.closest('.control-group').insertAdjacentElement('afterend', ui.container);
+  }
+  renderThemeTabs();
+  renderThemeSwatches();
 }
 
 function deselectPet() {
@@ -200,14 +304,7 @@ if (closeCardBtn) closeCardBtn.addEventListener('click', deselectPet);
 
 // Live Color Preview - updates both the live pet and the mini preview model
 if (petColorInput) {
-  petColorInput.addEventListener('input', (e) => {
-    if (selectedPet) {
-      selectedPet.setColor(e.target.value);
-    }
-    if (currentPreview) {
-      currentPreview.bodyMaterial.color.set(e.target.value);
-    }
-  });
+  petColorInput.addEventListener('input', (e) => applyPetColor(e.target.value));
 }
 
 // Save with bounce animation
