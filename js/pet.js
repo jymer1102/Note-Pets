@@ -44,51 +44,6 @@ function createTextTexture(text) {
   return new THREE.CanvasTexture(canvas);
 }
 
-// --- Eye expressions ---
-// Small canvas-drawn textures swapped onto the shared eye material so pets
-// can flip between a normal dot, happy "^ ^" carets (spawn), and closed
-// "- -" lines (save) without needing separate geometry per expression.
-function createEyeTexture(type) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = '#000000';
-  ctx.fillStyle = '#000000';
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  if (type === 'happy') {
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    ctx.moveTo(8, 42);
-    ctx.lineTo(32, 16);
-    ctx.lineTo(56, 42);
-    ctx.stroke();
-  } else if (type === 'closed') {
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    ctx.moveTo(8, 32);
-    ctx.lineTo(56, 32);
-    ctx.stroke();
-  } else {
-    // normal
-    ctx.beginPath();
-    ctx.arc(32, 32, 14, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
-}
-
-const EYE_TEXTURES = {
-  normal: createEyeTexture('normal'),
-  happy: createEyeTexture('happy'),
-  closed: createEyeTexture('closed')
-};
-
 export class Pet {
   constructor(data = {}) {
     this.id = data.id || null;
@@ -136,22 +91,22 @@ export class Pet {
     this.bodyMesh.userData.petInstance = this;
     this.group.add(this.bodyMesh);
 
-    // Eyes - camera-facing sprites (like the title label) so the expression
-    // (dot / happy / closed) always renders crisp and correctly oriented,
-    // instead of a flat plane that can be seen edge-on as the pet turns.
-    this.eyeMaterial = new THREE.SpriteMaterial({
-      map: EYE_TEXTURES.normal,
+    // Eyes - simple black spheres, like the original. Expressions (happy
+    // during the spawn wiggle, closed during the save wiggle) are done by
+    // squashing/tilting these meshes rather than swapping a texture, so
+    // they stay solid 3D shapes from any viewing angle.
+    this.eyeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
       transparent: true,
       opacity: 1
     });
     this._eyeExpression = 'normal';
+    const eyeGeo = new THREE.SphereGeometry(0.09, 16, 16);
 
-    const leftEye = new THREE.Sprite(this.eyeMaterial);
-    leftEye.scale.set(0.22, 0.18, 1);
+    const leftEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     leftEye.position.set(-0.18, 0.15 * scaleY, 0.42);
 
-    const rightEye = new THREE.Sprite(this.eyeMaterial);
-    rightEye.scale.set(0.22, 0.18, 1);
+    const rightEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     rightEye.position.set(0.18, 0.15 * scaleY, 0.42);
 
     this.eyeMeshes = [leftEye, rightEye];
@@ -239,8 +194,27 @@ export class Pet {
   setEyeExpression(type) {
     if (this._eyeExpression === type) return;
     this._eyeExpression = type;
-    this.eyeMaterial.map = EYE_TEXTURES[type] || EYE_TEXTURES.normal;
-    this.eyeMaterial.needsUpdate = true;
+
+    const [leftEye, rightEye] = this.eyeMeshes;
+
+    if (type === 'closed') {
+      // Flatten into a thin horizontal line, like a closed eye.
+      leftEye.scale.set(1, 0.15, 1);
+      rightEye.scale.set(1, 0.15, 1);
+      leftEye.rotation.z = 0;
+      rightEye.rotation.z = 0;
+    } else if (type === 'happy') {
+      // Flattened + tilted outward on each side, approximating "^ ^".
+      leftEye.scale.set(1, 0.25, 1);
+      rightEye.scale.set(1, 0.25, 1);
+      leftEye.rotation.z = 0.5;
+      rightEye.rotation.z = -0.5;
+    } else {
+      leftEye.scale.set(1, 1, 1);
+      rightEye.scale.set(1, 1, 1);
+      leftEye.rotation.z = 0;
+      rightEye.rotation.z = 0;
+    }
   }
 
   // Builds a fully independent copy of this pet (own geometries + own
@@ -254,17 +228,13 @@ export class Pet {
       roughness: 0.3,
       metalness: 0.1
     });
-    const eyeMaterial = new THREE.SpriteMaterial({
-      map: EYE_TEXTURES.normal,
-      transparent: true
-    });
+    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
     const body = new THREE.Mesh(this.bodyMesh.geometry.clone(), bodyMaterial);
     group.add(body);
 
     this.eyeMeshes.forEach((eye) => {
-      const m = new THREE.Sprite(eyeMaterial);
-      m.scale.copy(eye.scale);
+      const m = new THREE.Mesh(eye.geometry.clone(), eyeMaterial);
       m.position.copy(eye.position);
       group.add(m);
     });
@@ -426,8 +396,7 @@ export class Pet {
     this.bodyMesh.geometry.dispose();
     this.bodyMaterial.dispose();
 
-    // Eyes are sprites (shared internal geometry managed by three.js) -
-    // only the material needs disposing.
+    this.eyeMeshes.forEach((m) => m.geometry.dispose());
     this.eyeMaterial.dispose();
 
     this.earMeshes.forEach((m) => m.geometry.dispose());
