@@ -5,7 +5,13 @@ export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // Supabase's default auth lock uses the browser's Web Locks API
+    // (navigator.locks) to coordinate auth calls across tabs. On Safari
+    // (especially iOS/mobile) this lock can get stuck and never release,
+    // which makes signInWithPassword() and similar calls hang forever with
+    // no error. Bypassing the lock (documented Supabase workaround) fixes it.
+    lock: async (name, acquireTimeout, fn) => fn()
   }
 });
 
