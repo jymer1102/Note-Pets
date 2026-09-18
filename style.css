@@ -74,6 +74,7 @@ input[type="color"] {
 #canvas-container {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   position: absolute;
   top: 0;
   left: 0;
@@ -132,6 +133,7 @@ input[type="color"] {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: rgba(10, 10, 20, 0.85);
   backdrop-filter: blur(15px);
   z-index: 100;
